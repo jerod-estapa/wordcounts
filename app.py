@@ -11,6 +11,7 @@ import nltk
 from rq import Queue
 from rq.job import Job
 from worker import conn
+from flask import jsonify
 
 
 #################
@@ -31,6 +32,7 @@ from models import *
 ##########
 
 def count_and_save_words(url):
+
     errors = []
 
     try:
@@ -55,12 +57,8 @@ def count_and_save_words(url):
         no_stop_words_count = Counter(no_stop_words)
 
         # save the results
-        results = sorted(
-            no_stop_words_count.items(),
-            key=operator.itemgetter(1),
-            reverse=True
-        )[:10]
         try:
+            from models import Result
             result = Result(
                 url=url,
                 result_all=raw_word_count,
@@ -68,16 +66,20 @@ def count_and_save_words(url):
             )
             db.session.add(result)
             db.session.commit
+            return result.id
         except:
             errors.append("Unable to add item to database.")
             return {"error": errors}
+
 
 ##########
 # Routes #
 ##########
 
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
+
     results = {}
     if request.method == "POST":
         # get URL that the user has entered
@@ -90,6 +92,23 @@ def index():
         print(job.get_id())
 
     return render_template('index.html', results=results)
+
+
+@app.route("/results/<job_key>", methods=['GET'])
+def get_results(job_key):
+
+    job = Job.fetch(job_key, connection=conn)
+
+    if job.is_finished:
+        result = Result.query.filter_by(id=job.result).first()
+        results = sorted(
+            result.result_no_stop_words.items(),
+            key=operator.itemgetter(1),
+            reverse=True
+        )[:10]
+        return jsonify(results)
+    else:
+        return 'Nay!', 202
 
 
 if __name__ == '__main__':
