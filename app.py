@@ -1,17 +1,19 @@
-from flask import Flask, render_template, request
-from flask.ext.sqlalchemy import SQLAlchemy
-from stop_words import stops
 from collections import Counter
-from bs4 import BeautifulSoup
 import operator
 import os
-import requests
 import re
+
+from flask import Flask, render_template, request
+from bs4 import BeautifulSoup
+import requests
 import nltk
 from rq import Queue
 from rq.job import Job
-from worker import conn
 from flask import jsonify
+
+from flask.ext.sqlalchemy import SQLAlchemy
+from stop_words import stops
+from worker import conn
 
 
 #################
